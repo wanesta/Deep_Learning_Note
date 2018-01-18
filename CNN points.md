@@ -53,11 +53,11 @@ Second layer (pool1): 3 x 3 filters applied at stride 2 output volume size ? hin
   \-   需要估算的权重个数减少: AlexNet 1亿 => 3.5w    一组固定的权重和不同窗口内数据做内积: 卷积
   ```
 
-  ## 反向传播的过程
+### 反向传播的过程
 
   对于每次更新都要进行完整的一次前馈和反馈，当进行更新时需要梯度要前馈给样本，然后进行反向求导得到梯度，然后根据得到的梯度进行权值的微调，来完成权值的更新。（通过前馈得到损失，通过反馈得到梯度，通过对梯度的使用来完成权值的更新）这就是圣经网络的训练过程中内部变化。前馈->反馈->更新->前馈->反馈->更新
 
-## 激活层:ReLU layer
+### 激活层:ReLU layer
 
 - #### ReLU 的作用 ?
 
@@ -188,7 +188,11 @@ Second layer (pool1): 3 x 3 filters applied at stride 2 output volume size ? hin
   <http://www.slideshare.net/kuwajima/cnnbp> 对于Conv Layer多个filter，我的理解是这样的： 1.第一层有32个filter，对于下一层就有32个input 2.第二层的每一个filter，都会对着32个input进行一遍conv操作，得到32个output，最终的output是这32个output的叠加。
 
 同一般机器学习算法，先定义Loss function，衡量和实际结果之间差距。 找到最小化损失函数的W和b，CNN中用的算法是SGD，SGD需要计算W和b的偏导 BP算法就是计算偏导用的。 BP算法的核心是求导链式法则。
-
+### 三维的层结构
+卷积神经网络的层结构和全链接神经网络的层结构大不相同。全链接神经网络的每层的神经元是按照一维排列的，也就是排成一条线的样子；而卷积神经网络的每层的神经院是按照三维排列的，也就是排成一个长方体的样子，有宽度、高度、深度。
+神经网络输入层的宽度和高度对应于输入图像的宽度和高度，而他的深度为1。接着，第一个卷积层对这幅图像进行了卷积操作得到了FeatureMap。featuremap的数量是与filter的数量一致的。有几个filter就是有几套参数。每个filter都可以吧原始输入图像卷积得到一个featuremap，至于一个卷积层可以有多少个filter是可以自由设定的。也就是说卷积层的filter个数也是一个超参数。我们可以把featuremap看作是普通卷积变换提取得到的图像特征，几个filter就对原始图像提取机组不同的特征。但是一般有RGB三个通道一般取是那个也就是三通道。
+#### 卷积层输出值的计算
+我们用一个简单的例子来讲述如何计算卷积，然后，我们抽象出卷积层的一写概念和计算方法。假设有一个64*64的图像使用一个3*3的filter进行卷积，想得到一个(input-filter+2*padding)/stride+1的featuremap.
 ## 全连接层:Full connection layer
 
 - ##### 全连接层到底什么用？
@@ -242,3 +246,8 @@ $$	\frac{\partial L_{i}}{\partial w_{j}}=\frac{e^{f_{y_{i}}}}{\sum_{j}{e^{f_{j}}
 ## 正则化与dropout
 
 神经 络学习能 强可能会过拟合。 Dropout(随机失活)正则化:别 次开启所有学习单元
+
+
+
+### 机器学习中防止过拟合方法
+https://www.cnblogs.com/lovephysics/p/7220703.html

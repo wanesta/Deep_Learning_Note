@@ -31,7 +31,7 @@ BPTT算法是针对循环层的训练算法，它的基本原理和BP算法是�
 #### 向前计算
 使用公式2对循环层进行前向计算：
 $$ s_{t} = f(Ux_{t} + Ws_{t-1}) $$
-图中$s_{t}$、$x_{t}$、s_{t-1}都是向量，用黑体字母表示；而U、V是矩阵，用大写字母表示。
+图中$s_{t}$、$x_{t}$、$s_{t-1}$ 都是向量，用黑体字母表示；而U、V是矩阵，用大写字母表示。
 假设输入向量x的维度是m，输出的向量s的维度是n，则矩阵U的维度是n x m，矩阵W的维度是n x n。下面是展开成矩阵：
 $\begin{bmatrix}
 s_{1}^{t}
@@ -222,6 +222,201 @@ $$
 $$ \frac{\partial E}{\partial \omega_{ji}} = \frac{\partial E}{\partial net_{j}^{t}} \frac{\partial net_{j}^{t}}{\partial \omega_{ji}}$$
 $$ = \delta_{j}^{t}s_{i}^{t-1} $$
 按照上面对规律就可以生成公式5的矩阵。
+我们已经求得了权重矩阵W在t时刻得梯度$\Delta w_{t}E$，最终得梯度$\Delta wE$是各个时刻得梯度之和：
+$$ \Delta wE = \sum_{i=1}^{t}\Delta w_{i}E $$
+
+$$
+= \begin{bmatrix}
+\delta_{1}^{t}s_{1}^{t-1} & \delta_{1}^{t}s_{2}^{t-1} & ... & \delta_{1}^{t}s_{n}^{t-1}\\
+\delta_{2}^{t}s_{1}^{t-1} & \delta_{2}^{t}s_{2}^{t-1} & ... & \delta_{2}^{t}s_{n}^{t-1}\\
+.\\
+.\\
+\delta_{n}^{t}s_{1}^{t-1} & \delta_{n}^{t}s_{2}^{t-1} & ... & \delta_{n}^{t}s_{n}^{t-1}\\
+\end{bmatrix} + ... +
+\begin{bmatrix}
+\delta_{1}^{1}s_{1}^{0} & \delta_{1}^{1}s_{2}^{0} & ... & \delta_{1}^{1}s_{n}^{0}\\
+\delta_{2}^{1}s_{1}^{0} & \delta_{2}^{1}s_{2}^{0} & ... & \delta_{2}^{1}s_{n}^{0}\\
+.\\
+.\\
+\delta_{n}^{1}x_{1}^{0} & \delta_{n}^{1}x_{2}^{0} & ... & \delta_{n}^{1}x_{n}^{0}\\
+\end{bmatrix}
+$$
+公式6
+上面是计算循环层权重矩阵w的梯度的公式。
+下面将是解释各个时刻的梯度之和是来计算最终梯度的过程。其中用到了矩阵对矩阵求导、张量与向量想成预算的一些法则。
+$$ net_{t}=Ux_{t}+Wf(net_{t-1}) $$
+其中$Ux_{t}$与w完全无关，我们把它看作敞亮。现在，考虑第一个式子加号右边的部分，因为w和$f(net_{t-1})$都是w的函数，导数相乘法则
+$$ {(uv)}'={u}'v+u{v}' $$
+上面第一个式子写成：
+$$ \frac{\partial net_{t}}{\partial W}=\frac{\partial W}{\partial W}f(net_{t-1})+W\frac{\partial f(net_{t-1})}{\partial W} $$
+有：
+$$ \Delta wE = \frac{\partial E}{\partial W} $$
+$$ =\frac{\partial E}{\partial net_{t}} \frac{\partial net_{t}}{\partial W} $$
+$$ =\delta_{t}^{T}\frac{\partial W}{\partial W}f(net_{t-1})+\delta_{t}^{T}w\frac{\partial f(net_{t-1})}{\partial W} $$
+公式7
+先算公式左边部分。
+
+$$ \frac{\partial w}{\partial W} =
+\begin{bmatrix}
+\frac{\partial w_{11}}{\partial W} & \frac{\partial w_{12}}{\partial W} & ... & \frac{\partial w_{1n}}{\partial W} \\
+\frac{\partial w_{21}}{\partial W} & \frac{\partial w_{22}}{\partial W} & ... & \frac{\partial w_{2n}}{\partial W} \\
+.\\
+.\\
+\frac{\partial w_{n1}}{\partial W} & \frac{\partial w_{n2}}{\partial W} & ... & \frac{\partial w_{nn}}{\partial W}
+\end{bmatrix}
+$$
+$$ =
+\begin{bmatrix}
+	\begin{bmatrix}
+	\frac{\partial w_{11}}{\partial w_{11}} & \frac{\partial w_{11}}{\partial w_{12}} & ... & \frac{\partial w_{11}}{\partial w_{1n}} \\
+	\frac{\partial w_{11}}{\partial w_{21}} & \frac{\partial w_{11}}{\partial w_{22}} & ... & \frac{\partial w_{11}}{\partial w_{2n}} \\
+	.\\
+	.\\
+	\frac{\partial w_{11}}{\partial w_{n1}} & \frac{\partial w_{11}}{\partial w_{n2}} & ... & \frac{\partial w_{11}}{\partial w_{nn}}
+	\end{bmatrix}
+	&
+	\begin{bmatrix}
+	\frac{\partial w_{12}}{\partial w_{11}} & \frac{\partial w_{12}}{\partial w_{12}} & ... & \frac{\partial w_{12}}{\partial w_{1n}} \\
+	\frac{\partial w_{12}}{\partial w_{21}} & \frac{\partial w_{12}}{\partial w_{22}} & ... & \frac{\partial w_{12}}{\partial w_{2n}} \\
+	.\\
+	.\\
+	\frac{\partial w_{12}}{\partial w_{n1}} & \frac{\partial w_{12}}{\partial w_{n2}} & ... & \frac{\partial w_{12}}{\partial w_{nn}}
+	\end{bmatrix}
+	& ...\\
+	.\\
+	.
+\end{bmatrix}
+$$
+
+$$
+= \begin{bmatrix}
+	\begin{bmatrix}
+	1 & 0 & ... & 0 \\
+	0 & 0 & ... & 0 \\
+	.\\
+	.\\
+	0 & 0 & ... 0
+	\end{bmatrix}
+	&
+	\begin{bmatrix}
+	0 & 1 & ... & 0 \\
+	0 & 0 & ... & 0 \\
+	.\\
+	.\\
+	0 & 0 & ... 0
+	\end{bmatrix}
+	& ... \\
+	. \\
+	.
+\end{bmatrix}
+$$
+$s_{t-1}=f(net_{t-1})$，它是一个列向量。上面向量与这个向量做积，得到三维张量，再左乘行向量$\delta_{t}^{T}$，最终得到一个矩阵：
+$$ \delta_{t}^{T}f(net_{t-1})=\delta_{t}^{T}\frac{\partial W}{\partial W}s_{t-1} $$
+$$
+= \delta_{t}^{T}
+\begin{bmatrix}
+	\begin{bmatrix}
+	1 & 0 & ... & 0 \\
+	0 & 0 & ... & 0 \\
+	.\\
+	.\\
+	0 & 0 & ... 0
+	\end{bmatrix}
+	&
+	\begin{bmatrix}
+	0 & 1 & ... & 0 \\
+	0 & 0 & ... & 0 \\
+	.\\
+	.\\
+	0 & 0 & ... 0
+	\end{bmatrix}
+	& ... \\
+	. \\
+	.
+\end{bmatrix}
+\begin{bmatrix}
+	s_{1}^{t-1}\\
+	s_{2}^{t-1}\\
+	.\\
+	.\\
+	s_{n}^{t-1}
+\end{bmatrix}
+$$
+$$
+=\delta_{t}^{T}
+\begin{bmatrix}
+	\begin{bmatrix}
+	s_{1}^{t-1}\\
+	0 \\
+	.\\
+	.\\
+	0
+	\end{bmatrix}
+	&
+	\begin{bmatrix}
+	s_{2}^{t-1} \\
+	0 \\
+	.\\
+	.\\
+	0
+	\end{bmatrix}
+	& ... \\
+	. \\
+	.
+\end{bmatrix}
+$$
+$$
+= \begin{bmatrix}
+\delta_{1}^{t} & \delta_{2}^{t} & ... & \delta_{n}^{t}
+\end{bmatrix}
+\begin{bmatrix}
+	\begin{bmatrix}
+	s_{1}^{t-1}\\
+	0 \\
+	.\\
+	.\\
+	0
+	\end{bmatrix}
+	&
+	\begin{bmatrix}
+	s_{2}^{t-1} \\
+	0 \\
+	.\\
+	.\\
+	0
+	\end{bmatrix}
+	& ... \\
+	. \\
+	.
+\end{bmatrix} $$
+
+$$ =
+\begin{bmatrix}
+\delta_{1}^{t}s_{1}^{t-1} & \delta_{1}^{t}s_{2}^{t-1} & ... & \delta_{1}^{t}s_{n}^{t-1} \\
+\delta_{2}^{t}s_{1}^{t-1} & \delta_{2}^{t}s_{2}^{t-1} & ... & \delta_{2}^{t}s_{n}^{t-1} \\
+.\\
+.\\
+\delta_{n}^{t}s_{1}^{t-1} & \delta_{n}^{t}s_{2}^{t-1} & ... & \delta_{n}^{t}s_{n}^{t-1}
+\end{bmatrix}
+$$
+$$ =
+\Delta w_{t}E
+$$
+然后是公式加号的右边：
+$$ \delta_{t}^{T}W\frac{\partial f(net_{t-1})}{\partial W}=\delta_{t}^{T}W\frac{\partial f(net_{t-1})}{\partial net_{t-1}}\frac{\partial net_{t-1}}{\partial W} $$
+$$ =\delta_{t}^{T}W{f}'(net_{t-1})\frac{\partial net_{t-1}}{\partial W} $$
+$$ =\delta_{t}^{T}\frac{\partial net_{t}}{\partial net_{t-1}}\frac{\partial net_{t-1}}{\partial W} $$
+$$ =\delta_{t-1}^{T}\frac{\partial net_{t-1}}{\partial W} $$
+
+于是：
+$$ \Delta wE= \frac{\partial E}{\partial W} $$
+
+$$ =\frac{\partial E}{\partial net_{t}}\frac{\partial net_{t}}{\partial W} $$
+$$ =\Delta w_{t}E + \delta_{t-1}^{T}\frac{\partial net_{t-1}}{\partial W} $$
+$$ =\Delta w_{t}E + \Delta w_{t-1}E + \delta_{t-2}^{T}\frac{\partial net_t-2}{\partial W} $$
+$$ = \Delta w_{t}E + \Delta w_{t-1}E + ... + \Delta w_{1}E $$
+$$ =\sum_{k=1}^{t}\Delta w_{k}E $$
+最后的梯度$\Delta wE$是梯度总和。
 权重矩阵W在t时刻的梯度$\Delta w_{t}E$，最终的梯度$\Delta wE$是各个时刻的梯度只和：
 $$
 \Delta U_{t}E = \begin{bmatrix}
@@ -231,8 +426,10 @@ $$
 .\\
 \delta_{n}^{t}x_{1}^{t} & \delta_{n}^{t}x_{2}^{t} & ... & \delta_{n}^{t}x_{m}^{t}\\
 \end{bmatrix}
-$$ 公式8
-公式8是误差函数在t时刻对权重矩阵U的梯度。和权重矩阵W一样，最终的梯度也是各个时刻的梯度只和：
+$$
+
+公式8
+公式8是误差函数在t时刻对权重矩阵U的梯度。和权重矩阵W一样，最终的梯度也是各个时刻的梯度之和：
 $$ \Delta_{U}E = \sum_{i=1}^{t}\Delta_{U_{i}}E $$
 
 
@@ -313,7 +510,7 @@ $$ \left\|\delta_{k}^{T} \right \|  \leq \left\| \delta_{t}^{T} \right\| \prod_{
 $$ \leq \left\| \delta_{t}^{T} \right\| (\beta_{f}\beta_{W})^{t-k} $$
 误差项$\delta$从t时刻传递到k时刻，其值的上街是$\beta_{f}\beta_{w}$的指数函数。$\beta_{f}^{w}$分别是对角矩阵$diag[{f}'(net_{i})]$
 和矩阵W模的上界。显然，除非$\beta_{f}\beta_{w}$乘积的值位于1附近，否则，当t-k很大时(就是误差传递很多歌时刻时)，整个式子的值就会变得极小(当$\beta_{f}\beta_{w}$乘积小于1)或者极大(当$\beta_{f}\beta_{w}$乘积大于1)，前者就是梯度消失，后者就是梯度爆炸。虽然有一些技巧可以适当阻止这种情况(比如怎样初始化权重),让$\beta_{f}\beta^{w}$的值尽可能贴近于1，终究还是难以抵挡指数的威力。
-梯度消失意味着权重数组W最终的梯度是各个时刻的梯度之和，即：
+数组W最终的梯度是各个时刻的梯度之和，即：
 $$ \Delta_{W}E = \sum_{t}^{k=1}\Delta_{Wk}E $$
 $$ = \Delta_{Wk}E + \Delta_{Wt-1}E +\Delta_{Wt-2}E + ... + \Delta_{W1}E $$
 假设某一轮训练的时候各时刻梯度以及最终的梯度之和如下图:
@@ -363,7 +560,7 @@ $$ o_{t}=\sigma(W_{o}\cdot[h_{t-1},x_{t}] + b_{o]}) $$
 下面表示输出门的计算：
 ![output_gate](assets/output_gate.png)
 LSTM最终的输出，是由输出门和单元状态共同确定的：
-$$ h_{t}=o_{t}\circ(c_{t}) $$
+$$ h_{t}=o_{t} \circ tanh (c_{t}) $$ 公式6
 下图表示LSTM最终输出的计算:
 ![output](assets/output.png)
 式1到式6就是LSTM前向计算的全部公式。
@@ -453,14 +650,131 @@ $$ net_{\overline{c},t}=W_{c}[h_{t-1},x_{t}] + b_{c} $$
 $$ =W_{ch}h_{t-1} + W_{cx}x_{t}+ b_{c} $$
 $$ net_{o,t} = W_{o}[h_{t-1},x_{t}] + b_{o} $$
 $$ =W_{oh}h_{t-1} + W_{ox}x_{t}+b_{o} $$
-$$ \delta_{f,t}=\frac{\partial E}{\partial net_{f,t}} $$
+$$ \delta_{f,t}=^{def}\frac{\partial E}{\partial net_{f,t}} $$
+$$ \delta_{i,t}=^{def}\frac{\partial E}{\partial net_{i,t}} $$
+$$ \delta_{\overline{c},t}=^{def}\frac{\partial E}{\partial net_{\overline{c},t}} $$
+$$ \delta_{o,t}=^{def}=\frac{\partial E}{\partial net_{o,t}} $$
+#### 误差项沿着时间反向传播
+沿时间反向传递误差项，就是要计算处t-1时刻的误差项$\delta_{t-1}$。
+$$ \delta_{t-1}^{T}=\frac{\partial E}{\partial h_{t-1}} $$
+$$= \frac{\partial E}{\partial h_{t}}\frac{\partial h_{t}}{\partial h_{t-1}} $$
+$$ \delta_{t}^{T}\frac{\partial h_{t}}{\partial h_{t-1}} $$
+$\frac{h_{t}}{\partial h_{t-1}}$是一个Jacobian矩阵。如果隐藏层h的维度是N的话，那么它就是一个N X N矩阵。为了求出它，我们列出$h_{t}$的计算公式：
+$$ h_{t}=o_{t}\circ tanh(c_{t}) $$
+$$ c_{t}=f_{t}\circ c_{t-1} + i_{t} \circ \overline{c}_{t} $$
+$o_{t}$、$f_{t}$、$i_{t}$、$\overline{c}_{t}$ 都是$h_{t-1}$的函数，那么，利用全导数公式可得：
+$$
+ \delta_{t}^{T}\frac{\partial h_{t}}{\partial h_{t-1}}=\delta_{t}^{T}\frac{\partial h_{t}}{\partial o_{t}}\frac{\partial o_{t}}{\partial net_{o,t}}\frac{\partial net_{o,t}}{\partial h_{t-1}} + \delta_{t}^{T}\frac{\partial h_{t}}{\partial c_{t}}\frac{\partial c_{t}}{\partial f_{t}}\frac{\partial f_{t}}{\partial net_{f,t}}\frac{\partial net_{f,t}}{\partial h_{t-1}} + \delta_{t}^{T}\frac{\partial h_{t}}{\partial c_{t}}\frac{\partial c_{t}}{\partial i_{t}} \frac{\partial i_{t}}{\partial net_{i,t}}\frac{\partial net_{i,t}}{\partial h_{t-1}}+\delta_{t}^{T}\frac{\partial h_{t}}{\partial c_{t}}\frac{\partial c_{t}}{\partial \overline{c}_{t}}\frac{\partial\overline{c}_{t}}{\partial net_{\overline{c},t}}\frac{\partial net_{\overline{c},t}}{\partial h_{t-1}}
+$$
+$$
+=\delta_{o,t}^{T}\frac{\partial net_{o,t}}{\partial h_{t-1}}+\delta_{f,t}^{T}\frac{\partial net_{f,t}}{\partial h_{t-1}}+\delta_{i,t}^{T}\frac{\partial net_{i,t}}{\partial h_{t-1}} + \delta_{\overline{c},t}^{T}\frac{\partial  net_{\overline{c},t}}{\partial h_{t-1}}
+$$
+公式7
+把上面公式中的每个偏导数求出来，根据公式6我们可以求出：
+$$ \frac{\partial h_{t}}{\partial o_{t}}=diag[tanh(c_{t})] $$
+$$ \frac{\partial h_{t}}{\partial c_{t}}=diag[o_{t}\circ (1-tanh(c_{t})^{2})] $$
+$$ \frac{\partial c_{t}}{\partial f_{t}}=diag[c_{t-1}] $$
+$$ \frac{\partial c_{t}}{\partial i_{t}}=diag[\overline{c}_{t}] $$
+$$ \frac{\partial c_{t}}{\partial \overline{c}_{t}}=diag[i_{t}] $$
+因为:
+$$ o^{t}=\sigma(net_{o,t}) $$
+$$ net_{o,t}=W_{oh}h_{t-1}+W_{ox}x_{t}+b_{o} $$
+$$ f_{t}=\sigma(net_{f,t}) $$
+$$ net_{f,t}=W_{fh}h_{t-1}+W_{fx}x_{t}+g_{f} $$
+$$ i_{t}=\sigma(net_{i,t}) $$
+$$ net_{i,t}=W_{ih}h_{t-1}+W_{ix}+b_{i} $$
+$$ \overline{c}_{t}=tanh(net_{\overline{c},t}) $$
+$$ net_{\overline{c},t}=W_{ch}h_{t-1}+W_{cx}x_{t}+b_{c} $$
+可以得到:
+$$ \frac{\partial o_{t}}{\partial net_{o,t}}=diag[o_{t}\circ (1-o_{t})] $$
+$$ \frac{\partial net_{o,t}}{\partial h_{t-1}}=W_{oh} $$
+$$ \frac{\partial f_{t}}{\partial net_{f,t}}=diag[f_{t}\circ (1-f_{t})] $$
+$$ \frac{\partial net_{f,t}}{\partial h_{t-1}}=W_{fh} $$
+$$ \frac{\partial i_{t}}{\partial net_{i,t}}=diag[i_{t}\circ (1-f_{t})] $$
+$$ \frac{\partial net_{i,t}}{\partial h_{t-1}}=W_{ih} $$
+$$ \frac{\partial net_{\overline{c},t}}{\partial h_{t-1}}=diag[i_{t}\circ (1-\overline{c}_{t}^{2})] $$
+$$ \frac{\partial net_{\overline{c},t}}{\partial h_{t-1}}=W_{ch} $$
+将上面偏导数倒入式子7，
+$$ \delta_{t-1}=\delta_{o,t}^{T}\frac{\partial net_{o,t}}{\partial h_{t-1}}+\delta_{f,t}^{T}\frac{\partial net_{f,t}}{\partial h_{t-1}}+\delta_{i,t}^{T}\frac{\partial net_{i,t}}{\partial h_{t-1}}+\delta_{\overline{c},t}^{T}\frac{\partial net_{\overline{c},t}}{\partial h_{t-1}} $$
+$$ =\delta_{o,t}^{T}W_{o,t}+\delta_{f,t}^{T}W_{fh}+\delta_{i,t}^{T}W_{ih}+\delta_{\overline{c},t}^{T}W_{ch} $$
+公式8
+根据$\delta_{o,t}$、$\delta_{f,t}$、$\delta_{i,t}$、$\delta_{\overline{c},t}$的定义，可知:
+$$ \delta_{o,t}^{T}=\delta_{t}^{T}\circ tanh(c_{t})\circ o_{t}\circ(1-o_{t}) $$   公式9
+$$ \delta_{f,t}^{T}=\delta_{t}^{T}\circ o_{t}\circ (1-tanh(c_{t})^{2})\circ c_{t-1}\circ f_{t}\circ (1-f_{t}) $$
+$$ \delta_{i,t}^{T}=\delta_{t}^{T}\circ o_{t}\circ (1-tanh(c_{t})^{2})\circ \overline{c}_{t}\circ i_{t}\circ (1-i_{t}) $$
+$$ \delta_{\overline{c},t}^{T}=\delta_{t}^{T}\circ o_{t}\circ (1-tanh(c_{t})^{2})\circ i_{t}\circ (1-\overline{c}^{2})  $$
+上面的式子就是将误差愿时间反向传播一个时刻的公式。可以写出将误差项向前传递到任意k时刻的公式：
+$$ \delta_{k}^{T}=\prod_{j=k}^{t-1}\delta_{o,j}^{T}W_{oh}+\delta_{T}^{f,j}W_{fh}+\delta_{f,j}^{T}W_{fh}+\delta_{i,j}^{T}W_{ih}+\delta_{\overline{c},j}^{T}W_{ch} $$
+式13
+将误差传递到上一层，定义上一层误差项是误差函数对上一层加权输入的导数，l表示当前层
+$$ \delta_{t}^{l-1}=^{def}\frac{\partial E}{net_{t}^{l-1}} $$
+LSTM输入$x_{t}$由下面公式计算:
+$$ x_{l}^{t}=f^{l-1}(net_{t}^{l-1}) $$
+$f_{l-1}$表示上一层的激活函数。
+因为$net_{f,t}^{l}$、$net_{i,t}^{l}$、$net_{\overline{c}}^{l}$、$net_{o,t}^{l}$都是$x_{t}$的函数，$x_{t}$又是$net_{t}^{l-1}$的函数，因此，求出E对$net_{t}^{l-1}$的导数，就需要使用全导数公式：
+$$ \frac{\partial E}{\partial net_{t}^{l-1}}=\frac{\partial E}{\partial net_{f,t}^{l}}\frac{\partial net_{f,t}^{l}}{\partial x_{t}^{l}}\frac{\partial x_{t}^{l}}{\partial net_{t}^{l-1}}+\frac{\partial E}{\partial net_{i,t}^{l}}\frac{\partial net_{i,t}^{l}}{\partial x_{t}^{l}}\frac{\partial x_{t}^{l}}{\partial net_{t}^{l-1}}+\frac{\partial E}{\partial net_{\overline{c},t}^{l}}\frac{\partial net_{\overline{c},t}^{l}}{\partial x_{t}^{l}}\frac{\partial x_{t}^{l}}{\partial net_{t}^{l-1}}+\frac{\partial E}{\partial net_{o,t}^{l}}\frac{\partial net_{l}^{o,t}}{\partial x_{t}^{l}}\frac{\partial x_{t}^{l}}{\partial net_{l-1}^{t}} $$
+$$ =\delta_{T}^{f,t}W_{fx}\circ {f}'(net_{t}^{l-1})+\delta_{T}^{i,t}W_{ix}\circ {f}'(net_{t}^{l-1})+\delta_{T}^{\overline{c},t}W_{\overline{c}x}\circ {f}'(net_{t}^{l-1})+\delta_{T}^{o,t}W_{ox}\circ {f}'(net_{t}^{l-1}) $$
+$$ =(\delta_{f,t}^{T})W_{fx}+\delta_{i,t}^{T})W_{ix}+\delta_{\overline{c},t}^{T})W_{cx}+\delta_{o,t}^{T})W_{ox}\circ {f}'(net_{t}^{l-1}) $$
+公式14
+是将误差传递到上一层到公式。
+#### 权重梯度到计算
+对于$W_{fh}$、$W_{ih}$、$W_{ch}$、$W_{oh}$的权重梯度，我们知道他的梯度是各个时刻梯度之和。首先要求出t时刻的梯度，然后再求出他们最终的梯度。
+通过误差项$\delta_{o,t}$、$\delta_{f,t}$、$\delta_{i,t}$、$\delta_{\overline{c},t}$求得t时刻的$W_{oh}$、$W_{ih}$、$W_{fh}$、$W_{ch}$
+$$ \frac{\partial E}{\partial W_{oh,t}}=\frac{\partial E}{\partial net_{o,t}}\frac{\partial net_{o,t}}{\partial W_{oh,t}} $$
+$$ =\delta_{o,t}h_{t-1}^{T} $$
+$$ \frac{\partial E}{\partial W_{fh,t}}=\frac{\partial E}{\partial net_{f,t}}\frac{\partial net_{f,t}}{\partial W_{fh,t}} $$
+$$ =\delta_{f,t}h_{t-1}^{T} $$
+$$ \frac{\partial E}{\partial W_{ih,t}}=\frac{\partial E}{\partial net_{i,t}}\frac{\partial net_{i,t}}{\partial W_{ih,t}} $$
+$$ =\delta_{i,t}h_{t-1}^{T} $$
+$$ \frac{\partial E}{\partial W_{ch,t}}=\frac{\partial E}{\partial net_{c,t}}\frac{\partial net_{c,t}}{\partial W_{fh,t}} $$
+$$ =\delta_{c,t}h_{t-1}^{T} $$
+再求出梯度的总和，就得到了最终的梯度：
+$$ \frac{\partial E}{\partial W_{oh}}=\sum_{j=1}^{t}\delta_{o,j}h_{j-1}^{T} $$
+$$ \frac{\partial E}{\partial W_{fh}}=\sum_{j=1}^{t}\delta_{f,j}h_{j-1}^{T} $$
+$$ \frac{\partial E}{\partial W_{ih}}=\sum_{j=1}^{t}\delta_{i,j}h_{j-1}^{T} $$
+$$ \frac{\partial E}{\partial W_{vh}}=\sum_{j=1}^{t}\delta_{v,j}h_{j-1}^{T} $$
+偏置项$b_{f}$、$b_{i}$、$b_{c}$、$b_{o}$的梯度，会将各个时刻的梯度加和。下面是各个时刻的偏置项梯度：
+$$ \frac{\partial E}{\partial b_{o,t}}=\frac{\partial E}{\partial net_{o,t}}\frac{\partial net_{o,t}}{\partial b_{o,t}} $$
+$$ =\delta_{o,t} $$
+$$ \frac{\partial E}{\partial b_{f,t}}=\frac{\partial E}{\partial net_{f,t}}\frac{\partial net_{f,t}}{\partial b_{f,t}} $$
+$$ =\delta_{f,t} $$
+$$ \frac{\partial E}{\partial b_{i,t}}=\frac{\partial E}{\partial net_{i,t}}\frac{\partial net_{i,t}}{\partial b_{o,t}} $$
+$$ =\delta_{i,t} $$
+$$ \frac{\partial E}{\partial b_{c,t}}=\frac{\partial E}{\partial net_{c,t}}\frac{\partial net_{c,t}}{\partial b_{o,t}} $$
+$$ =\delta_{c,t} $$
+接下爱把偏置项梯度加和:
+$$ \frac{\partial E}{\partial b_{o}}=\sum_{j=1}^{t}\delta_{o,t} $$
+$$ \frac{\partial E}{\partial b_{i}}=\sum_{j=1}^{t}\delta_{i,t} $$
+$$ \frac{\partial E}{\partial b_{f}}=\sum_{j=1}^{t}\delta_{f,t} $$
+$$ \frac{\partial E}{\partial b_{c}}=\sum_{j=1}^{t}\delta_{c,t} $$
+对于权重梯度$W_{fx}$、$W_{ix}$、$W_{cx}$、$W_{ox}$根据误差项计算
 
+$$ \frac{\partial E}{\partial W_{ox}}=\frac{\partial E}{\partial net_{o,t}}\frac{\partial net_{o,t}}{\partial W_{ox}} $$
+$$ =\delta_{o,t} x_{t}^{T} $$
+$$ \frac{\partial E}{\partial W_{fx}}=\frac{\partial E}{\partial net_{f,t}}\frac{\partial net_{f,t}}{\partial W_{fx}} $$
+$$ =\delta_{f,t} x_{t}^{T} $$
+$$ \frac{\partial E}{\partial W_{ix}}=\frac{\partial E}{\partial net_{i,t}}\frac{\partial net_{i,t}}{\partial W_{ix}} $$
+$$ =\delta_{i,t} x_{t}^{T} $$
+$$ \frac{\partial E}{\partial W_{cx}}=\frac{\partial E}{\partial net_{c,t}}\frac{\partial net_{o,t}}{\partial W_{ox}} $$
+$$ =\delta_{o,t} x_{t}^{T} $$
 
 ### LSTM与Gradient vanish
-
 LSTM是为了解决RNN的gradient vanish问题所提出的。关于RNN出现Gradient vanish
 
 ## RNN中为什么要采用tanh而不是ReLu作为激活函数？
 
 - 在CNN等结构中将原先的sigmoid tanh 换成ReLU 可以取得比较好的结果。
 - 在RNN中将tanh换成ReLU不能取得很好效果。 输入数据为x，对x对卷积操作就可以看作是Wx+b
+https://www.zhihu.com/question/61265076/answer/186347780
+
+## GRU
+GRU是LSTM的一种变体，全称(Gated Recurrent Unit)也许是最成功的一种。对LSTM做了简化并保持着和LSTM相同效果。对LSTM做的改动大概归纳为两点：
+- 1.将输入们、遗忘门、输出们变为两个门:更新门（Update Gate）$z_{t}$ 和重置门（Reset Gate）$r_{t}$。
+- 2.将但愿状态与输出合并为一个状态:h。
+#### GRU向前计算
+
+$$ z_{t}=\sigma(W_{z}\dot [h_{t-1},x_{t}]) $$
+$$ r_{t}=\sigma(W_{r}\dot [h_{t-1},x_{t}]) $$
+$$ \widehat h_{t}=tanh(W \dot [r_{t} \circ h_{t-1},x_{t}) $$
+$$ h=(1-z^{t})\circ h_{t-1}+z_{t}\circ \widehat h_{t} $$
+![GRU](assets/GRU.jpg)
